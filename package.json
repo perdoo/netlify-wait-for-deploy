@@ -1,0 +1,17 @@
+{
+  "name": "netlify-wait-for-deploy",
+  "version": "0.1.0",
+  "license": "MIT",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "@actions/core": "^1.8.2",
+    "node-fetch": "^3.2.5"
+  },
+  "devDependencies": {
+    "eslint": "^8.16.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "^2.6.2"
+  }
+}
