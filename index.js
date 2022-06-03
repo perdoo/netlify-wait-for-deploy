@@ -39,7 +39,7 @@ const waitForDeployToBeReady = async (inputs, deploy) => {
   );
 
   const handle = setInterval(
-    async (deployId) => {
+    async (inputs, deployId) => {
       waitTime += WAIT_INCREMENT;
 
       if (waitTime >= WAIT_TIMEOUT) {
