@@ -4,7 +4,7 @@ import fetch from "node-fetch";
 const NETLIFY_BASE_URL = `https://api.netlify.com/api/v1/`;
 const READY_STATES = ["ready", "current"];
 const WAIT_TIMEOUT = 60 * 15; // 15 min
-const WAIT_INCREMENT = 30; // 30 seconds
+const WAIT_INCREMENT = 15; // seconds
 
 const netlifyFetch = async (netlifyToken, url) => {
   return await fetch(NETLIFY_BASE_URL + url, {
