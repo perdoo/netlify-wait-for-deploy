@@ -13,7 +13,7 @@ inputs:
   branch:
     description: Deployed branch
     required: true
-  commitSha:
+  commitRef:
     description: Deployed commit hash
     required: true
 runs:

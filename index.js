@@ -6,22 +6,45 @@ const READY_STATES = ["ready", "current"];
 const WAIT_TIMEOUT = 60 * 15; // 15 min
 const WAIT_INCREMENT = 15; // seconds
 
-const netlifyFetch = async (netlifyToken, url) => {
-  return await fetch(NETLIFY_BASE_URL + url, {
-    headers: {
-      Authorization: `Bearer ${netlifyToken}`,
-    },
-  }).then((response) => response.json());
+const netlifyFetch = async (netlifyToken, url, data) => {
+  let response = await fetch(NETLIFY_BASE_URL + url, {
+    ...data,
+    ...{ headers: { Authorization: `Bearer ${netlifyToken}` } },
+  });
+
+  if (response.status >= 400) {
+    throw new Error(response.statusText);
+  }
+
+  return await response.json();
 };
 
-const getDeploy = async (inputs) => {
+const getDeployFromId = async (inputs, deployId) => {
+  return await netlifyFetch(
+    inputs.netlifyToken,
+    `sites/${inputs.siteId}/deploys/${deployId}`
+  );
+};
+
+const getDeployFromBranchAndRef = async (inputs) => {
   const deploys = await netlifyFetch(
     inputs.netlifyToken,
     `sites/${inputs.siteId}/deploys?branch=${inputs.branch}`
   );
 
   return deploys.find(
-    (d) => d.context == "production" && d.commit_ref == inputs.commitSha
+    (d) => d.context === "production" && d.commit_ref === inputs.commitRef
+  );
+};
+
+const createBuild = async (inputs) => {
+  return await netlifyFetch(
+    inputs.netlifyToken,
+    `/sites/${inputs.siteId}/builds`,
+    {
+      method: "POST",
+      body: { clear_cache: false },
+    }
   );
 };
 
@@ -29,50 +52,42 @@ const isDeployReady = (deploy) => {
   return READY_STATES.includes(deploy.state);
 };
 
-const waitForDeployToBeReady = async (inputs, deploy) => {
+const waitForDeployToBeReady = async (inputs, deployId) => {
   let waitTime = 0;
 
   core.info(
-    `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitSha}) ` +
+    `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitRef}) ` +
       `is not ready yet.\nWaiting ${WAIT_INCREMENT} more seconds for the ` +
       `deploy to finish.`
   );
 
-  const handle = setInterval(
-    async (inputs, deployId) => {
-      waitTime += WAIT_INCREMENT;
+  const handle = setInterval(async () => {
+    waitTime += WAIT_INCREMENT;
 
-      if (waitTime >= WAIT_TIMEOUT) {
-        clearInterval(handle);
-        core.setFailed(
-          `Wait for production deploy for branch '${inputs.branch}' ` +
-            `(sha: ${inputs.commitSha}) timed out after ` +
-            `${WAIT_TIMEOUT / 60} minutes.`
-        );
-        return;
-      }
-
-      const deploy = await netlifyFetch(
-        inputs.netlifyToken,
-        `sites/${inputs.siteId}/deploys/${deployId}`
+    if (waitTime >= WAIT_TIMEOUT) {
+      clearInterval(handle);
+      core.setFailed(
+        `Wait for production deploy for branch '${inputs.branch}' ` +
+          `(sha: ${inputs.commitRef}) timed out after ` +
+          `${WAIT_TIMEOUT / 60} minutes.`
       );
+      return;
+    }
 
-      if (isDeployReady(deploy)) {
-        clearInterval(handle);
-        core.info(
-          `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitSha}) is ready.`
-        );
-        return;
-      }
+    const deploy = await getDeployFromId(inputs, deployId);
 
+    if (isDeployReady(deploy)) {
+      clearInterval(handle);
       core.info(
-        `Waiting ${WAIT_INCREMENT} more seconds for the deploy to finish.`
+        `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitRef}) is ready.`
       );
-    },
-    WAIT_INCREMENT * 1000,
-    inputs,
-    deploy.id
-  );
+      return;
+    }
+
+    core.info(
+      `Waiting ${WAIT_INCREMENT} more seconds for the deploy to finish.`
+    );
+  }, WAIT_INCREMENT * 1000);
 };
 
 const run = async () => {
@@ -81,31 +96,35 @@ const run = async () => {
       netlifyToken: core.getInput("netlifyToken"),
       siteId: core.getInput("siteId"),
       branch: core.getInput("branch"),
-      commitSha: core.getInput("commitSha"),
+      commitRef: core.getInput("commitRef"),
     };
 
     core.setSecret("netlifyToken");
 
-    const deploy = await getDeploy(inputs);
+    const deploy = await getDeployFromBranchAndRef(inputs);
+    let deployId = null;
 
-    if (!deploy) {
-      core.setFailed(
-        `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitSha}) doesn't exist.`
-      );
-      return;
-    }
+    if (deploy) {
+      if (isDeployReady(deploy)) {
+        core.info(
+          `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitRef}) is ready.`
+        );
+        return;
+      }
 
-    core.setOutput("deploy_id", deploy.id);
-    core.setOutput("url", `https://${deploy.id}--${deploy.name}.netlify.app`);
-
-    if (isDeployReady(deploy)) {
+      deployId = deploy.id;
+    } else {
       core.info(
-        `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitSha}) is ready.`
+        `Production deploy for branch '${inputs.branch}' ` +
+          `(sha: ${inputs.commitRef}) doesn't exist. Creating it manually.`
       );
-      return;
+      const build = await createBuild(inputs);
+      deployId = build.deploy_id;
     }
 
-    await waitForDeployToBeReady(inputs, deploy);
+    core.setOutput("deploy_id", deployId);
+
+    await waitForDeployToBeReady(inputs, deployId);
   } catch (error) {
     core.setFailed(error.message);
   }

@@ -16,7 +16,7 @@ _Required._ Netlify site ID.
 
 _Required._ Deployed branch.
 
-### `commitSha`
+### `commitRef`
 
 _Required._ Deployed commit hash.
 
@@ -28,5 +28,5 @@ with:
   netlifyToken: ${{ secrets.NETLIFY_AUTH_TOKEN }}
   siteId: foo
   branch: mybranch
-  commitSha: c8f1cb382ceeea039e726681d6bct6bda9914afe
+  commitRef: c8f1cb382ceeea039e726681d6bct6bda9914afe
 ```
