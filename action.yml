@@ -1,0 +1,21 @@
+name: Netlify Wait for Deploy
+description: Wait for a Netlify deploy to be ready
+branding:
+  icon: clock
+  color: blue
+inputs:
+  netlifyToken:
+    description: Netlify personal API token
+    required: true
+  siteId:
+    description: Netlify site ID
+    required: true
+  branch:
+    description: Deployed branch
+    required: true
+  commitRef:
+    description: Deployed commit hash
+    required: true
+runs:
+  using: "node16"
+  main: "index.js"
