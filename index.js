@@ -2,7 +2,9 @@ import * as core from "@actions/core";
 import fetch from "node-fetch";
 
 const NETLIFY_BASE_URL = `https://api.netlify.com/api/v1/`;
-const READY_STATES = ["ready", "current"];
+const STATE_READY = "ready";
+const STATE_CURRENT = "current";
+const STATE_ERROR = "error";
 const WAIT_TIMEOUT = 60 * 15; // 15 min
 const WAIT_INCREMENT = 15; // seconds
 
@@ -33,14 +35,17 @@ const getDeployFromBranchAndRef = async (inputs) => {
   );
 
   return deploys.find(
-    (d) => d.context === "production" && d.commit_ref === inputs.commitRef
+    (d) =>
+      d.context === "production" &&
+      d.commit_ref === inputs.commitRef &&
+      !hasDeployFailed(d)
   );
 };
 
 const createBuild = async (inputs) => {
   return await netlifyFetch(
     inputs.netlifyToken,
-    `/sites/${inputs.siteId}/builds`,
+    `sites/${inputs.siteId}/builds`,
     {
       method: "POST",
       body: { clear_cache: false },
@@ -49,7 +54,11 @@ const createBuild = async (inputs) => {
 };
 
 const isDeployReady = (deploy) => {
-  return READY_STATES.includes(deploy.state);
+  return deploy.state === STATE_READY || deploy.state === STATE_CURRENT;
+};
+
+const hasDeployFailed = (deploy) => {
+  return deploy.state === STATE_ERROR;
 };
 
 const waitForDeployToBeReady = async (inputs, deployId) => {
@@ -82,10 +91,18 @@ const waitForDeployToBeReady = async (inputs, deployId) => {
         `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitRef}) is ready.`
       );
       return;
+    } else if (hasDeployFailed(deploy)) {
+      clearInterval(handle);
+      core.setFailed(
+        `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitRef})` +
+          ` has failed with the error message: ${deploy.error_message}.`
+      );
+      return;
     }
 
     core.info(
-      `Waiting ${WAIT_INCREMENT} more seconds for the deploy to finish.`
+      `Waiting ${WAIT_INCREMENT} more seconds for the deploy for branch ` +
+        `'${inputs.branch}' (sha: ${inputs.commitRef}) to finish.`
     );
   }, WAIT_INCREMENT * 1000);
 };
