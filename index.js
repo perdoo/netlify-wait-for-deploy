@@ -122,13 +122,6 @@ const run = async () => {
     let deployId = null;
 
     if (deploy) {
-      if (isDeployReady(deploy)) {
-        core.info(
-          `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitRef}) is ready.`
-        );
-        return;
-      }
-
       deployId = deploy.id;
     } else {
       core.info(
@@ -140,6 +133,13 @@ const run = async () => {
     }
 
     core.setOutput("deploy_id", deployId);
+
+    if (isDeployReady(deploy)) {
+      core.info(
+        `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitRef}) is ready.`
+      );
+      return;
+    }
 
     await waitForDeployToBeReady(inputs, deployId);
   } catch (error) {
