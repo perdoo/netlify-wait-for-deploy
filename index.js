@@ -66,8 +66,8 @@ const waitForDeployToBeReady = async (inputs, deployId) => {
 
   core.info(
     `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitRef}) ` +
-      `is not ready yet.\nWaiting ${WAIT_INCREMENT} more seconds for the ` +
-      `deploy to finish.`
+    `is not ready yet.\nWaiting ${WAIT_INCREMENT} more seconds for the ` +
+    `deploy to finish.`
   );
 
   const handle = setInterval(async () => {
@@ -77,8 +77,8 @@ const waitForDeployToBeReady = async (inputs, deployId) => {
       clearInterval(handle);
       core.setFailed(
         `Wait for production deploy for branch '${inputs.branch}' ` +
-          `(sha: ${inputs.commitRef}) timed out after ` +
-          `${WAIT_TIMEOUT / 60} minutes.`
+        `(sha: ${inputs.commitRef}) timed out after ` +
+        `${WAIT_TIMEOUT / 60} minutes.`
       );
       return;
     }
@@ -95,14 +95,14 @@ const waitForDeployToBeReady = async (inputs, deployId) => {
       clearInterval(handle);
       core.setFailed(
         `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitRef})` +
-          ` has failed with the error message: ${deploy.error_message}.`
+        ` has failed with the error message: ${deploy.error_message}.`
       );
       return;
     }
 
     core.info(
       `Waiting ${WAIT_INCREMENT} more seconds for the deploy for branch ` +
-        `'${inputs.branch}' (sha: ${inputs.commitRef}) to finish.`
+      `'${inputs.branch}' (sha: ${inputs.commitRef}) to finish.`
     );
   }, WAIT_INCREMENT * 1000);
 };
@@ -126,7 +126,7 @@ const run = async () => {
     } else {
       core.info(
         `Production deploy for branch '${inputs.branch}' ` +
-          `(sha: ${inputs.commitRef}) doesn't exist. Creating it manually.`
+        `(sha: ${inputs.commitRef}) doesn't exist. Creating it manually.`
       );
       const build = await createBuild(inputs);
       deployId = build.deploy_id;
@@ -134,7 +134,7 @@ const run = async () => {
 
     core.setOutput("deploy_id", deployId);
 
-    if (isDeployReady(deploy)) {
+    if (deploy && isDeployReady(deploy)) {
       core.info(
         `Production deploy for branch '${inputs.branch}' (sha: ${inputs.commitRef}) is ready.`
       );
