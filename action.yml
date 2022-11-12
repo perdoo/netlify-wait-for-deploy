@@ -13,9 +13,6 @@ inputs:
   branch:
     description: Deployed branch
     required: true
-  commitRef:
-    description: Deployed commit hash
-    required: true
 runs:
   using: "node16"
   main: "index.js"
