@@ -5,7 +5,7 @@ const NETLIFY_BASE_URL = `https://api.netlify.com/api/v1/`;
 const STATE_READY = "ready";
 const STATE_CURRENT = "current";
 const STATE_ERROR = "error";
-const WAIT_TIMEOUT = 60 * 15; // 15 min
+const WAIT_TIMEOUT = 60 * 25; // 25 min
 const WAIT_INCREMENT = 15; // seconds
 
 const netlifyFetch = async (netlifyToken, url, data) => {
